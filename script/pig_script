@@ -1,0 +1,54 @@
+grunt > crime_record = LOAD 'hbase://crime_record' USING org.apache.pig.backend.hadoop.hbase.HBaseStorage('cf1:case_number cf1:date cf1:block cf1:type cf1:location cf1:arrest cf1:domestic cf1:beat cf1:district cf1:community cf1:fbi_code cf1:latitude cf1:longitude') AS (id:int, case_number:chararray, date:chararray, block:chararray, type:chararray, location:chararray, arrest:chararray, domestic:chararray, beat:int, district:int, community:int, fbi_code:chararray, latitude:chararray, longitude:chararray);
+
+1. ============== Each Year Crime Type location ===========================
+
+grunt > crime_record = LOAD '/Users/zongzesheng/Desktop/crime-record-test.csv' USING PigStorage(',') AS (case_number:chararray, date:chararray, block:chararray, type:chararray, location:chararray, arrest:chararray, domestic:chararray, beat:int, district:int, community:int, fbi_code:chararray, latitude:chararray, longitude:chararray);
+
+grunt > date_type_location = FOREACH crime_record GENERATE ToDate(date, 'MM/dd/yyyy hh:mm:ss aa') AS date, type, location;
+
+grunt > year_type_location = foreach date_type_location { year=(chararray)GetYear(date); generate year AS year, type, location; };
+
+grunt > groupyear_grouptype_location = GROUP year_type_location BY (year, type);
+
+grunt > groupyear_grouptype_location_result = FOREACH groupyear_grouptype_location GENERATE FLATTEN(group) AS (year, type), COUNT(year_type_location.location) AS number;
+
+grunt > groupyear_type_location = GROUP groupyear_grouptype_location_result BY year;
+
+grunt > result = foreach groupyear_type_location { sorted = order groupyear_grouptype_location_result by number desc; top3 = limit sorted 3; generate group, flatten(top3);};
+
+grunt > STORE result INTO '/Users/zongzesheng/Desktop/pig_result_year_type';
+
+
+2 ==================================================================
+
+grunt > crime_record = LOAD '/Users/zongzesheng/Desktop/crime-record-test.csv' USING PigStorage(',') AS (case_number:chararray, date:chararray, block:chararray, type:chararray, location:chararray, arrest:chararray, domestic:chararray, beat:int, district:int, community:int, fbi_code:chararray, latitude:chararray, longitude:chararray);
+
+grunt > date_fbi_type = FOREACH crime_record GENERATE ToDate(date, 'MM/dd/yyyy hh:mm:ss aa') AS date, fbi_code, type;
+
+grunt > year_fbi_type = foreach date_fbi_type { year=(chararray)GetYear(date); generate year AS year, fbi_code, type; };
+
+grunt > groupyear_groupfbi_type = GROUP year_fbi_type BY (year, fbi_code);
+
+grunt > groupyear_groupfbi_type_result = FOREACH groupyear_groupfbi_type GENERATE FLATTEN(group) AS (year, fbi_code), COUNT(year_fbi_type.type) AS number;
+
+grunt > groupyear_fbi_type = GROUP groupyear_groupfbi_type_result BY year;
+
+grunt > result = foreach groupyear_fbi_type { sorted = order groupyear_groupfbi_type_result by number desc; top3 = limit sorted 3; generate group, flatten(top3);};
+
+grunt > STORE result INTO '/Users/zongzesheng/Desktop/pig_result';
+
+
+====================================================================
+
+B = foreach date_type_location {
+  currTime = CurrentTime();
+  year = (chararray)GetYear(currTime);
+  month = (chararray)GetMonth(currTime);
+  day = (chararray)GetDay(currTime);
+  generate CONCAT(CONCAT(CONCAT(year, '-'), CONCAT(month, '-')),day) as myDate;
+}
+
+B = foreach date_type_location {
+  year = (chararray)GetYear(date);
+  generate year, type, location;
+}

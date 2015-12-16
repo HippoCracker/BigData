@@ -1,0 +1,43 @@
+for i in `cat /home/hduser/hadoop-2.6.0/etc/hadoop/slaves`; do echo $i; rsync -avxP --exclude=logs
+/home/hduser/hadoop-2.6.0/ $i:/home/hduser/hadoop-2.6.0/; done
+
+for i in `cat /home/hduser/hadoop-2.6.0/etc/hadoop/slaves`; do echo $i; rsync -avxP --exclude=logs
+/home/hduser/hbase-0.98/ $i:/home/hduser/hbase-0.98/; done
+
+clean cache: sudo sh -c 'echo 1 > /proc/sys/vm/drop_caches'
+
+
+hive hbase
+
+create table hbase_table_1(key int, value string) stored by
+'org.apache.hadoop.hive.hbase.HBaseStorageHandler' with
+serdeproperties("hbase.columns.mapping"=":key,cf1:val") tblproperties("hbase.table.name"="xyz");
+
+
+create table crime_record(key int, case_number string, date string, block string, type string, location
+string, arrest string, domestic string, beat int, district int, community int, fbi_code int,
+latitude string, longitude string) stored by 'org.apache.hadoop.hive.hbase.HBaseStorageHandler' with
+serdeproperties("hbase.columns.mapping"=":key, cf1:case_number, cf1:date, cf1:block, cf1:type,
+cf1:location, cf1:arrest, cf1:domestic, cf1:beat, cf1:district, cf1:community, cf1:fbi_code,
+cf1:latitude, cf1:longitude") tblproperties("hbase.table.name"="crime_record");
+
+case_number, date, block, type, location, arrest, domestic, beat, district, community, fbi_code,
+latitude, longitude
+
+
+create table load_data_table(case_number string, date string, block string, type string, location
+string, arrest string, domestic string, beat int, district int, community int, fbi_code int,
+latitude string, longitude string) row format delimited fields terminated by ",";
+
+load data local inpath '/Users/zongzesheng/Desktop/crime-record-test.csv' overwrite into table load_data_table;
+
+
+create external table hbase_table_2(key int, value string) stored by
+'org.apache.hadoop.hive.hbase.HBaseStorageHandler' with
+serdeproperties("hbase.columns.mapping"="info:value") tblproperties("hbase.table.name"="abc");
+
+
+
+pig hbase user_links = load 'hbase://users' using
+org.apache.pig.backend.hadoop.hbase.HBaseStorage('user_info:name, links:*', '-loadKey true -gt 0')
+as (id, name:chararray, links:map[]);

@@ -1,0 +1,15 @@
+Hive > ADD JAR /Users/zongzesheng/Desktop/HiveAddKeyUDF.jar;
+
+Hive > CREATE TEMPORARY FUNCTION incr AS 'main.AddKey';
+
+Hive > create table load_data_table(case_number string, date string, block string, type string, location string, arrest string, domestic string, beat int, district int, community int, fbi_code int, latitude string, longitude string) row format delimited fields terminated by ",";
+
+Hive > load data local inpath '/Users/zongzesheng/Desktop/crime-record-test.csv' overwrite into table load_data_table;
+
+Hive > create table addkey_table(id int, case_number string, date string, block string, type string, location string, arrest string, domestic string, beat int, district int, community int, fbi_code int, latitude string, longitude string);
+
+Hive > INSERT OVERWRITE TABLE addkey_table SELECT incr() AS id, case_number, date, block, type, location, arrest, domestic, beat, district, community, fbi_code, latitude, longitude FROM load_data_table;
+
+Hive > create table crime_record(key int, case_number string, date string, block string, type string, location string, arrest string, domestic string, beat int, district int, community int, fbi_code int, latitude string, longitude string) stored by 'org.apache.hadoop.hive.hbase.HBaseStorageHandler' with serdeproperties("hbase.columns.mapping"=":key, cf1:case_number, cf1:date, cf1:block, cf1:type, cf1:location, cf1:arrest, cf1:domestic, cf1:beat, cf1:district, cf1:community, cf1:fbi_code, cf1:latitude, cf1:longitude") tblproperties("hbase.table.name"="crime_record");
+
+Hive > insert overwrite table crime_record select * from addkey_table;
