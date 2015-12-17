@@ -19,7 +19,7 @@ grunt > result = foreach groupyear_type_location { sorted = order groupyear_grou
 grunt > STORE result INTO '/Users/zongzesheng/Desktop/pig_result_year_type';
 
 
-2 ==================================================================
+2 ======================= date_fbi_type =================================
 
 grunt > crime_record = LOAD '/Users/zongzesheng/Desktop/crime-record-test.csv' USING PigStorage(',') AS (case_number:chararray, date:chararray, block:chararray, type:chararray, location:chararray, arrest:chararray, domestic:chararray, beat:int, district:int, community:int, fbi_code:chararray, latitude:chararray, longitude:chararray);
 
@@ -38,17 +38,123 @@ grunt > result = foreach groupyear_fbi_type { sorted = order groupyear_groupfbi_
 grunt > STORE result INTO '/Users/zongzesheng/Desktop/pig_result';
 
 
+3 ======================= date_block_type =================================
+
+grunt > crime_record = LOAD '/Users/zongzesheng/Desktop/crime-record-test.csv' USING PigStorage(',') AS (case_number:chararray, date:chararray, block:chararray, type:chararray, location:chararray, arrest:chararray, domestic:chararray, beat:int, district:int, community:int, fbi_code:chararray, latitude:chararray, longitude:chararray);
+
+grunt > date_block_type = FOREACH crime_record GENERATE ToDate(date, 'MM/dd/yyyy hh:mm:ss aa') AS date, block, type;
+
+grunt > year_block_type = foreach date_block_type { year=(chararray)GetYear(date); generate year AS year, block, type; };
+
+grunt > groupyear_groupblock_type = GROUP year_block_type BY (year, block);
+
+grunt > groupyear_groupblock_type_result = FOREACH groupyear_groupblock_type GENERATE FLATTEN(group) AS (year, block), COUNT(year_block_type.type) AS number;
+
+grunt > groupyear_block_type = GROUP groupyear_groupblock_type_result BY year;
+
+grunt > result = foreach groupyear_block_type { sorted = order groupyear_groupblock_type_result by number desc; top6 = limit sorted 6; generate group, flatten(top6);};
+
+grunt > STORE result INTO '/Users/zongzesheng/Desktop/pig_result';
+
+4 ======================= date_district_type ==============================
+
+grunt > crime_record = LOAD '/Users/zongzesheng/Desktop/crime-record-test.csv' USING PigStorage(',') AS (case_number:chararray, date:chararray, block:chararray, type:chararray, location:chararray, arrest:chararray, domestic:chararray, beat:int, district:int, community:int, fbi_code:chararray, latitude:chararray, longitude:chararray);
+
+grunt > date_district_type = FOREACH crime_record GENERATE ToDate(date, 'MM/dd/yyyy hh:mm:ss aa') AS date, district, type;
+
+grunt > year_district_type = foreach date_district_type { year=(chararray)GetYear(date); generate year AS year, district, type; };
+
+grunt > groupyear_groupdistrict_type = GROUP year_district_type BY (year, district);
+
+grunt > groupyear_groupdistrict_type_result = FOREACH groupyear_groupdistrict_type GENERATE FLATTEN(group) AS (year, district), COUNT(year_district_type.type) AS number;
+
+grunt > groupyear_district_type = GROUP groupyear_groupdistrict_type_result BY year;
+
+grunt > result = foreach groupyear_district_type { sorted = order groupyear_groupdistrict_type_result by number desc; top6 = limit sorted 6; generate group, flatten(top6);};
+
+grunt > STORE result INTO '/Users/zongzesheng/Desktop/pig_result';
+
+
+5 ======================= time_type ==============================
+
+grunt > crime_record = LOAD '/Users/zongzesheng/Desktop/crime-record-test.csv' USING PigStorage(',') AS (case_number:chararray, date:chararray, block:chararray, type:chararray, location:chararray, arrest:chararray, domestic:chararray, beat:int, district:int, community:int, fbi_code:chararray, latitude:chararray, longitude:chararray);
+
+grunt > date_type = FOREACH crime_record GENERATE ToDate(date, 'MM/dd/yyyy hh:mm:ss aa') AS date, type;
+
+grunt > hour_type = foreach date_type { hour=(chararray)GetHour(date); generate hour AS hour, type; };
+
+grunt > grouphour_type = GROUP hour_type BY hour;
+
+grunt > grouphour_type_result = FOREACH grouphour_type GENERATE group, COUNT(hour_type.type) AS number;
+
+grunt > sorted = ORDER grouphour_type_result BY number DESC;
+
+grunt > result = LIMIT sorted 5;
+
+grunt > STORE result INTO '/Users/zongzesheng/Desktop/pig_result';
+
 ====================================================================
 
-B = foreach date_type_location {
-  currTime = CurrentTime();
-  year = (chararray)GetYear(currTime);
-  month = (chararray)GetMonth(currTime);
-  day = (chararray)GetDay(currTime);
-  generate CONCAT(CONCAT(CONCAT(year, '-'), CONCAT(month, '-')),day) as myDate;
+6 ======================= number arrest by year =========================
+
+grunt > crime_record = LOAD '/Users/zongzesheng/Desktop/crime-record-test.csv' USING PigStorage(',') AS (case_number:chararray, date:chararray, block:chararray, type:chararray, location:chararray, arrest:chararray, domestic:chararray, beat:int, district:int, community:int, fbi_code:chararray, latitude:chararray, longitude:chararray);
+
+grunt > date_arrest = FOREACH crime_record GENERATE ToDate(date, 'MM/dd/yyyy hh:mm:ss aa') AS date, arrest;
+
+grunt > date_is_arrested = FILTER date_arrest BY arrest=='true';
+
+grunt > year_is_arrested = foreach date_is_arrested { year=(chararray)GetYear(date); generate year AS year, arrest; };
+
+grunt > groupyear_arrested = GROUP year_is_arrested BY year;
+
+grunt > groupyear_arrested_result = FOREACH groupyear_arrested GENERATE group, COUNT(year_is_arrested.arrest) AS number;
+
+grunt > sorted = ORDER groupyear_arrested_result BY number DESC;
+
+grunt > result = LIMIT sorted 5;
+
+grunt > STORE result INTO '/Users/zongzesheng/Desktop/pig_result';
+
+7. ============== Each Year Total Crimes ===========================
+
+grunt > crime_record = LOAD '/Users/zongzesheng/Desktop/crime-record-test.csv' USING PigStorage(',') AS (case_number:chararray, date:chararray, block:chararray, type:chararray, location:chararray, arrest:chararray, domestic:chararray, beat:int, district:int, community:int, fbi_code:chararray, latitude:chararray, longitude:chararray);
+
+grunt > date_type = FOREACH crime_record GENERATE ToDate(date, 'MM/dd/yyyy hh:mm:ss aa') AS date, type, location;
+
+grunt > year_type = foreach date_type { year=(chararray)GetYear(date); generate year AS year, type, location; };
+
+grunt > groupyear_type = GROUP year_type BY year;
+
+grunt > groupyear_total = FOREACH groupyear_type GENERATE group AS total_year, COUNT(year_type.location) AS total;
+
+grunt > STORE result INTO '/Users/zongzesheng/Desktop/pig_result';
+
+
+==================================
+
+grunt > result = FOREACH groupyear_grouptype_location_result { 
+  this_year = year;
+  year_total = FILTER groupyear_total BY year_total == this_year; 
+  GENERATE year_total.year, year_total.total;
 }
 
-B = foreach date_type_location {
-  year = (chararray)GetYear(date);
-  generate year, type, location;
+
+result = FOREACH groupyear_grouptype_location_result { 
+  this_year = year;
+  total = FILTER groupyear_total BY year == this_year;
+  GENERATE total;
 }
+
+
+
+
+GENERATE year, type, number, (number/year_total.total) AS percentage;
+
+grunt > groupyear_type_location = GROUP groupyear_grouptype_location_result BY year;
+
+grunt > result = foreach groupyear_type_location { sorted = order groupyear_grouptype_location_result by number desc; top3 = limit sorted 3; generate group, flatten(top3);};
+
+grunt > STORE result INTO '/Users/zongzesheng/Desktop/pig_result_year_type';
+
+
+
